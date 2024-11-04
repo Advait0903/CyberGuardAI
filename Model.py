@@ -66,14 +66,23 @@ y_pred = model.predict(X_test_tfidf)
 y_pred_labels = label_encoder.inverse_transform(y_pred)
 logging.info("Predictions completed.")
 
-# Evaluation (if labels are available in test_df, otherwise skip this step)
+all_categories = pd.concat([train_df['category'], test_df['category']]).unique()
+
+# Fit the LabelEncoder on all unique categories
+label_encoder = LabelEncoder()
+label_encoder.fit(all_categories)
+
+# Encode training and test categories
+train_df['category_encoded'] = label_encoder.transform(train_df['category'])
+
+# For test set: Check if category column exists, then transform
 if 'category' in test_df.columns:
-    test_df['category_encoded'] = label_encoder.transform(test_df['category'])
-    accuracy = accuracy_score(test_df['category_encoded'], y_pred)
-    logging.info(f"Accuracy: {accuracy}")
-    logging.info("Classification Report:\n" + classification_report(test_df['category_encoded'], y_pred))
+    try:
+        test_df['category_encoded'] = label_encoder.transform(test_df['category'])
+    except ValueError as e:
+        print(f"Error in encoding test categories: {e}")
 else:
-    logging.info("No category labels in test set; skipping evaluation.")
+    print("No 'category' column in test set; skipping encoding for test categories.")
 
 # Export Predictions to CSV if needed
 logging.info("Saving predictions to CSV...")
